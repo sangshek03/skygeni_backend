@@ -29,9 +29,9 @@ export class DataSeederController {
   async seedData(@Query('type') dataType: string) {
     const fileMap = {
       'account-industry': 'mock_data/account_industry.json',
-      'acv-range': '../../mock_data/acv_range.json',
-      'customer-type': '../../mock_data/customer_type.json',
-      'team': '../../mock_data/team.json'
+      'acv-range': 'mock_data/acv_range.json',
+      'customer-type': 'mock_data/customer_type.json',
+      'team': 'mock_data/team.json'
     };
 
     if (!fileMap[dataType]) {

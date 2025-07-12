@@ -4,12 +4,21 @@ import { Repository } from 'typeorm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AccountIndustry } from '../account_industry/account_industry.entity';
+import { AcvRange } from '../acv_range/acv_range.entity';
+import { CustomerType } from '../customer_type/customer_type.entity';
+import { Team } from '../team/team.entity';
 
 @Injectable()
 export class DataSeederService {
   constructor(
     @InjectRepository(AccountIndustry)
     private readonly accountIndustryRepo: Repository<AccountIndustry>,
+    @InjectRepository(AcvRange)
+    private readonly acvRangeRepo: Repository<AcvRange>,
+    @InjectRepository(CustomerType)
+    private readonly customerTypeRepo: Repository<CustomerType>,
+    @InjectRepository(Team)
+    private readonly teamRepo: Repository<Team>,
   ) {}
 
   /**
@@ -41,7 +50,8 @@ export class DataSeederService {
 
       switch (dataType) {
         case 'account-industry':
-          result = await repo.save(
+          await (repo as Repository<AccountIndustry>).clear();
+          result = await (repo as Repository<AccountIndustry>).save(
             jsonData.map((item) => ({
               count: item.count,
               acv: item.acv,
@@ -52,35 +62,39 @@ export class DataSeederService {
           );
           break;
 
-        // case 'acv-range':
-        //   result = await repo.save(jsonData.map(item => ({
-        //     count: item.count,
-        //     acv: item.acv,
-        //     closed_fiscal_quarter: item.closed_fiscal_quarter,
-        //     range: item.ACV_Range
-        //   })));
-        //   break;
+        case 'acv-range':
+          await (repo as Repository<AcvRange>).clear();
+          result = await (repo as Repository<AcvRange>).save(
+            jsonData.map((item) => ({
+              count: item.count,
+              acv: item.acv,
+              closed_fiscal_quarter: item.closed_fiscal_quarter,
+              range: item.ACV_Range,
+            })),
+          );
+          break;
 
-        // case 'customer-type':
-        //   result = await repo.save(jsonData.map(item => ({
-        //     count: item.count,
-        //     acv: item.acv,
-        //     closed_fiscal_quarter: item.closed_fiscal_quarter,
-        //     type: item.Cust_Type
-        //   })));
-        //   break;
+        case 'customer-type':
+          result = await (repo as Repository<CustomerType>).save(
+            jsonData.map((item) => ({
+              count: item.count,
+              acv: item.acv,
+              closed_fiscal_quarter: item.closed_fiscal_quarter,
+              type: item.Cust_Type, // Note field mapping
+            })),
+          );
+          break;
 
-        // case 'team':
-        //   result = await repo.save(jsonData.map(item => ({
-        //     count: item.count,
-        //     acv: item.acv,
-        //     closed_fiscal_quarter: item.closed_fiscal_quarter,
-        //     name: item.Team
-        //   })));
-        //   break;
-
-        default:
-          throw new Error(`Unknown data type: ${dataType}`);
+        case 'team':
+          result = await (repo as Repository<Team>).save(
+            jsonData.map((item) => ({
+              count: item.count,
+              acv: item.acv,
+              closed_fiscal_quarter: item.closed_fiscal_quarter,
+              name: item.Team, // Note field mapping
+            })),
+          );
+          break;
       }
 
       return {
@@ -96,9 +110,12 @@ export class DataSeederService {
     switch (dataType) {
       case 'account-industry':
         return this.accountIndustryRepo;
-      //   case 'acv-range': return this.acvRangeRepo;
-      //   case 'customer-type': return this.customerTypeRepo;
-      //   case 'team': return this.teamRepo;
+      case 'acv-range':
+        return this.acvRangeRepo;
+      case 'customer-type':
+        return this.customerTypeRepo;
+        case 'team': return this.teamRepo;
+
       default:
         throw new Error(`No repository for ${dataType}`);
     }
