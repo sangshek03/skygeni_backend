@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { AccountIndustry } from './account_industry.entity';
 import { AccountIndustryChartResponse } from './account_industry.dto';
 
-
 @Injectable()
 export class AccountIndustryService {
   constructor(
@@ -23,18 +22,16 @@ export class AccountIndustryService {
     });
 
     // Enrich data with calculated fields
-    const enrichedData = records.map(record => ({
+    const enrichedData = records.map((record) => ({
       ...record,
       acv_per_deal: this.calculateAcvPerDeal(record.acv, record.count),
     }));
 
     // Extract unique values for metadata
     const availableQuarters = [
-      ...new Set(records.map(r => r.closed_fiscal_quarter)),
+      ...new Set(records.map((r) => r.closed_fiscal_quarter)),
     ];
-    const industryTypes = [
-      ...new Set(records.map(r => r.acct_industry)),
-    ];
+    const industryTypes = [...new Set(records.map((r) => r.acct_industry))];
 
     return {
       data: enrichedData,
@@ -70,23 +67,24 @@ export class AccountIndustryService {
 
     return {
       visualization_type: 'stacked_bar',
-      data: quarterlyData.map(q => ({
+      data: quarterlyData.map((q) => ({
         ...q,
         // Parse JSON if using PostgreSQL < 14
-        industries: typeof q.industries === 'string' 
-          ? JSON.parse(q.industries) 
-          : q.industries,
+        industries:
+          typeof q.industries === 'string'
+            ? JSON.parse(q.industries)
+            : q.industries,
       })),
       metadata: {
-        available_quarters: quarterlyData.map(q => q.quarter),
+        available_quarters: quarterlyData.map((q) => q.quarter),
         industries: [
           ...new Set(
-            quarterlyData.flatMap(q => 
-              (typeof q.industries === 'string' 
-                ? JSON.parse(q.industries) 
+            quarterlyData.flatMap((q) =>
+              (typeof q.industries === 'string'
+                ? JSON.parse(q.industries)
                 : q.industries
-              ).map(i => i.name)
-            )
+              ).map((i) => i.name),
+            ),
           ),
         ],
       },
@@ -117,17 +115,15 @@ export class AccountIndustryService {
         'acct_industry AS industry',
         'acv',
         'count',
-        // Calculate percentage directly in SQL
-        `ROUND((acv / ${quarterTotal.total_acv || 1} * 100, 2) AS percentage`,
+        // Calculate percentage directly in SQL - fixed the ROUND function syntax
+        `ROUND(acv / ${quarterTotal.total_acv || 1} * 100, 2) AS percentage`,
       ])
       .where('closed_fiscal_quarter = :quarter', { quarter })
       .orderBy('acv', 'DESC')
       .getRawMany();
-
     // Group small segments into "Other" if more than 5 industries
-    const processedData = industries.length > 5
-      ? this.groupSmallSegments(industries)
-      : industries;
+    const processedData =
+      industries.length > 5 ? this.groupSmallSegments(industries) : industries;
 
     return {
       visualization_type: 'pie',
@@ -160,15 +156,18 @@ export class AccountIndustryService {
    */
   private groupSmallSegments(industries: any[]) {
     const threshold = 5; // 5% threshold
-    const mainSegments = industries.filter(i => i.percentage >= threshold);
-    const otherSegments = industries.filter(i => i.percentage < threshold);
+    const mainSegments = industries.filter((i) => i.percentage >= threshold);
+    const otherSegments = industries.filter((i) => i.percentage < threshold);
 
     if (otherSegments.length > 0) {
       const combinedOther = {
         industry: 'Other',
         acv: otherSegments.reduce((sum, i) => sum + parseFloat(i.acv), 0),
         count: otherSegments.reduce((sum, i) => sum + parseInt(i.count), 0),
-        percentage: otherSegments.reduce((sum, i) => sum + parseFloat(i.percentage), 0),
+        percentage: otherSegments.reduce(
+          (sum, i) => sum + parseFloat(i.percentage),
+          0,
+        ),
       };
 
       return [...mainSegments, combinedOther];
